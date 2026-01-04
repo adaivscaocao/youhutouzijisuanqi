@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优弧·首席战略官全景决策系统 (V15 CSO旗舰版)</title>
+    <!-- 样式库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 图表库 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- 图表标签插件 (用于圆环图显示%) -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- 交互逻辑库 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
+    <!-- 高级字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; color: #0f172a; }
+        [x-cloak] { display: none !important; }
+
+        /* --- 顶级 UI 质感 --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+            border-radius: 20px;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-right: 1px solid #e2e8f0;
+        }
+
+        /* 模块化卡片 */
+        .control-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+        .control-card:hover { border-color: #cbd5e1; box-shadow: 0 8px 16px rgba(0,0,0,0.04); transform: translateY(-1px); }
+
+        /* 精致输入框 */
+        .input-bare {
+            background: transparent; border: none; border-bottom: 2px solid transparent;
+            font-family: 'JetBrains Mono', monospace; font-weight: 700; text-align: right;
+            width: 100%; transition: border-color 0.2s; outline: none;
+        }
+        .input-bare:focus { border-bottom-color: #3b82f6; }
+        
+        /* 迷你开关 */
+        .toggle-checkbox:checked { right: 0; border-color: #10b981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
+
+        /* 薪资条纹背景 */
+        .salary-strip {
+            background-image: repeating-linear-gradient(45deg, #f8fafc 0, #f8fafc 10px, #fff 10px, #fff 20px);
+        }
+        
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex text-sm">
+
+<div x-data="csoSystem()" x-init="initCharts()" class="flex w-full h-full" x-cloak>
+
+    <!-- ==================== 左侧：战略控制塔 (400px) ==================== -->
+    <div class="sidebar w-[400px] flex-shrink-0 flex flex-col h-full overflow-y-auto z-30">
+        
+        <!-- Header -->
+        <div class="p-6 sticky top-0 bg-white/95 backdrop-blur z-10 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-xl">优</div>
+                <div>
+                    <h1 class="font-black text-slate-900 text-lg leading-none tracking-tight">优弧·全景决策系统</h1>
+                    <p class="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1">V15 CSO Strategy Edition</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 space-y-8 pb-32">
+
+            <!-- 1. 投资模型 (Investment) -->
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span> 1. 资本投入与权益
+                </h2>
+                
+                <div class="control-card space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">加盟费 Franchise</label>
+                            <div class="flex items-center bg-slate-50 rounded px-2 py-1.5">
+                                <span class="text-xs text-slate-400 mr-1">¥</span>
+                                <input type="number" x-model="invest.franchiseFee" @input="updateAll()" class="input-bare text-slate-700">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">保证金 Deposit</label>
+                            <div class="flex items-center bg-slate-50 rounded px-2 py-1.5">
+                                <span class="text-xs text-slate-400 mr-1">¥</span>
+                                <input type="number" x-model="invest.deposit" @input="updateAll()" class="input-bare text-slate-700">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">硬装设备 Setup Cost</label>
+                        <div class="flex items-center bg-slate-50 rounded px-2 py-1.5">
+                            <span class="text-xs text-slate-400 mr-1">¥</span>
+                            <input type="number" x-model="invest.setupCost" @input="updateAll()" class="input-bare text-slate-700">
+                        </div>
+                    </div>
+                    
+                    <!-- 权益设置 -->
+                    <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-purple-600 font-bold block mb-1">消课分成 Royalty</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" x-model="invest.royaltyRateNum" @input="updateAll()" class="input-bare text-purple-600 w-10 border-b border-purple-200">
+                                <span class="text-xs font-bold text-purple-400">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-purple-600 font-bold block mb-1">月管费 Mgmt Fee</label>
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs text-purple-400">¥</span>
+                                <input type="number" x-model="invest.monthlyFee" @input="updateAll()" class="input-bare text-purple-600 border-b border-purple-200">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 运营与薪酬 (Operations & HR) -->
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> 2. 运营人效与薪酬
+                </h2>
+
+                <!-- A. 校区规模 -->
+                <div class="control-card border-l-4 border-l-blue-500">
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="text-xs font-bold text-slate-700">校区总学员 Active Students</label>
+                        <span class="text-lg font-black text-blue-600" x-text="coach.totalStudents + '人'"></span>
+                    </div>
+                    <input type="range" min="50" max="400" step="10" x-model="coach.totalStudents" @input="updateAll()" class="w-full accent-blue-600 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    
+                    <!-- 智能人效反馈 -->
+                    <div class="mt-3 flex justify-between items-center bg-slate-50 p-2 rounded text-[10px]">
+                        <span class="text-slate-500 font-bold">人均负荷: <span class="text-slate-900" x-text="studentsPerCoach"></span>人</span>
+                        <span :class="loadStatus.color" class="font-bold uppercase" x-text="loadStatus.msg"></span>
+                    </div>
+                </div>
+
+                <!-- B. 教练薪资配置 -->
+                <div class="control-card bg-blue-50/30 border-blue-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-2">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Coach Team</label>
+                            <div class="flex items-center bg-white border border-slate-200 rounded px-1">
+                                <button @click="coach.count = Math.max(1, coach.count-1); updateAll()" class="px-2 text-slate-400 hover:text-blue-600 font-bold">-</button>
+                                <span class="text-xs font-black w-4 text-center" x-text="coach.count"></span>
+                                <button @click="coach.count++; updateAll()" class="px-2 text-slate-400 hover:text-blue-600 font-bold">+</button>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-blue-600 font-bold">¥<span x-text="Math.round(totalCoachPay).toLocaleString()"></span> (总人力)</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="text-[9px] text-slate-400 block mb-1">底薪+绩效</label>
+                            <input type="number" x-model="coach.baseTotal" @input="updateAll()" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs font-bold text-right">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 block mb-1">职级提成</label>
+                            <select x-model="coach.level" @change="updateAll()" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs font-bold text-right text-blue-600">
+                                <option value="K2">K2 (10%)</option>
+                                <option value="K3">K3 (12%)</option>
+                                <option value="K4">K4 (15%)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 迷你工资条 -->
+                    <div class="salary-strip p-2 rounded border border-blue-100/50 text-[10px] text-slate-500 flex justify-between items-center">
+                        <span>单人月薪预览:</span>
+                        <span class="font-bold text-blue-700">¥<span x-text="Math.round(payPerCoach).toLocaleString()"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 现金与现实 (Cash & Reality) -->
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-orange-500"></span> 3. 现金流与现实修正
+                </h2>
+
+                <div class="control-card border-l-4 border-l-orange-400 space-y-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Cash Sales 现金收单</label>
+                        <div class="flex items-center">
+                            <span class="text-orange-500 font-bold text-sm mr-2">¥</span>
+                            <input type="number" x-model="cash.monthlySales" @input="updateAll()" class="input-bare text-orange-600 text-lg">
+                        </div>
+                    </div>
+                    
+                    <!-- 店长薪资 -->
+                    <div class="bg-orange-50/50 p-2 rounded border border-orange-100 grid grid-cols-2 gap-2 items-center">
+                        <div>
+                            <label class="text-[9px] text-slate-400 block">店长底薪</label>
+                            <input type="number" x-model="manager.base" @input="updateAll()" class="w-full bg-white border border-orange-200 rounded px-1 py-0.5 text-xs text-right">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-slate-400 block">提成点 <span class="text-orange-600 font-bold" x-text="(manager.rate*100).toFixed(1)+'%'"></span></label>
+                            <input type="range" min="0.01" max="0.08" step="0.005" x-model="manager.rate" @input="updateAll()" class="w-full h-1 bg-orange-200 rounded accent-orange-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 现实修正参数 -->
+                <div class="control-card grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Rent 房租</label>
+                        <input type="number" x-model="global.rent" @input="updateAll()" class="input-bare text-xs">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Marketing 营销</label>
+                        <input type="number" x-model="invest.marketingCost" @input="updateAll()" class="input-bare text-xs text-rose-500">
+                    </div>
+                    <div class="col-span-2 pt-2 border-t border-slate-100 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-600">🍂 开启淡旺季波动</span>
+                        <div class="relative inline-block w-8 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="season-toggle" x-model="global.seasonality" @change="updateAll()" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300"/>
+                            <label for="season-toggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-300 cursor-pointer"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Global Bottom -->
+            <div class="grid grid-cols-2 gap-2 text-[10px]">
+                <div class="bg-slate-100 rounded px-2 py-1">
+                    <span class="text-slate-400">Avg Price 单价</span>
+                    <input type="number" x-model="global.avgPrice" @input="updateAll()" class="bg-transparent font-bold w-full text-right outline-none">
+                </div>
+                <div class="bg-slate-100 rounded px-2 py-1">
+                    <span class="text-slate-400">Frequency 频次</span>
+                    <input type="number" x-model="global.weeklyFreq" @input="updateAll()" class="bg-transparent font-bold w-full text-right outline-none">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==================== 右侧：全景决策大屏 ==================== -->
+    <div class="flex-1 h-full overflow-y-auto bg-slate-50/50 p-8 xl:p-12 relative">
+        
+        <!-- 背景氛围 -->
+        <div class="fixed top-0 right-0 w-[800px] h-[800px] bg-indigo-100/40 rounded-full mix-blend-multiply blur-[120px] pointer-events-none"></div>
+
+        <div class="max-w-6xl mx-auto space-y-6 relative z-10">
+            
+            <!-- 智能诊断条 -->
+            <div class="glass-panel p-4 border-l-4 border-indigo-500 flex items-start gap-4">
+                <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600 mt-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-800">CSO 智能诊断</h3>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                        当前模型配置了 <strong class="text-blue-600" x-text="coach.totalStudents"></strong> 名学员与 <strong class="text-slate-800" x-text="coach.count"></strong> 名教练。
+                        人均负荷 <strong x-text="studentsPerCoach"></strong> 人，
+                        <span x-show="studentsPerCoach > 45" class="text-orange-500 font-bold">处于高负荷状态，建议增加人手以防教学质量下降。</span>
+                        <span x-show="studentsPerCoach <= 45 && studentsPerCoach >= 20" class="text-green-600 font-bold">处于黄金盈利区间，人效与体验平衡。</span>
+                        <span x-show="studentsPerCoach < 20" class="text-red-500 font-bold">处于低人效区，需增加生源或减少教练。</span>
+                        <br>
+                        预计回本周期 <strong class="text-indigo-600 bg-indigo-50 px-1 rounded"><span x-text="paybackPeriod"></span> 个月</strong>。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 1. 核心数据矩阵 (KPI) -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <div class="glass-panel p-5">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Startup Cost (启动资金)</p>
+                    <p class="text-2xl font-black text-slate-800 mt-1">¥<span x-text="(totalInitialInvest/10000).toFixed(1)"></span>万</p>
+                </div>
+                <div class="glass-panel p-5 bg-white border border-slate-200">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Avg. Monthly Revenue</p>
+                    <p class="text-2xl font-black text-blue-900 mt-1">¥<span x-text="Math.round(avgMonthlyRevenue).toLocaleString()"></span></p>
+                    <p class="text-[10px] text-slate-400 mt-1">消课总产值 (月均)</p>
+                </div>
+                <div class="glass-panel p-5 border-l-4 border-l-green-500">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Net Profit (净利)</p>
+                    <p class="text-2xl font-black" :class="avgMonthlyProfit>=0?'text-green-600':'text-red-500'">¥<span x-text="Math.round(avgMonthlyProfit).toLocaleString()"></span></p>
+                    <p class="text-[10px] text-slate-400 mt-1">利润率: <span x-text="((avgMonthlyProfit/avgMonthlyRevenue)*100).toFixed(1)"></span>%</p>
+                </div>
+                <div class="glass-panel p-5 bg-slate-900 text-white shadow-xl shadow-slate-300">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">ROI Period</p>
+                    <p class="text-3xl font-black text-yellow-400 mt-1 tracking-tighter"><span x-text="paybackPeriod"></span> <span class="text-sm font-bold text-white opacity-60">Months</span></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- 2. 主图表：价值推演 (占 2/3) -->
+                <div class="glass-panel p-6 lg:col-span-2 h-[450px] flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <span class="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                            资金回流推演 (24个月)
+                        </h3>
+                        <div class="flex gap-3 text-[10px] font-bold text-slate-500">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-emerald-500"></span> 盈利月</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-rose-500"></span> 亏损月</span>
+                            <span class="flex items-center gap-1"><span class="w-6 h-1 rounded bg-blue-600"></span> 累计回收</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 relative w-full">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 3. 营收圆盘 (Donut Chart) -->
+                <div class="glass-panel p-6 lg:col-span-1 flex flex-col">
+                    <h3 class="font-bold text-slate-800 text-sm mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-6 bg-purple-500 rounded-full"></span>
+                        营收分配结构 (Revenue Split)
+                    </h3>
+                    <div class="flex-1 relative">
+                        <canvas id="doughnutChart"></canvas>
+                        <!-- 中心文字 -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase">Total</span>
+                            <span class="text-lg font-black text-slate-800">100%</span>
+                        </div>
+                    </div>
+                    <!-- 图例 -->
+                    <div class="mt-4 grid grid-cols-2 gap-2 text-[10px]">
+                        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-300"></span> 房租运营</div>
+                        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> 员工薪资</div>
+                        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-300"></span> 营销推广</div>
+                        <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400"></span> 总部权益</div>
+                        <div class="flex items-center gap-1 col-span-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> 净利润 (Profit)</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 4. P&L 财务底表 -->
+            <div class="glass-panel p-0 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800 text-sm">损益表细目 (Monthly P&L Statement)</h3>
+                    <span class="text-[10px] bg-white border border-slate-200 px-2 py-1 rounded text-slate-500">单位: CNY</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="text-slate-400 font-bold border-b border-slate-100 bg-slate-50/30">
+                            <tr>
+                                <th class="py-3 px-6 w-1/3">科目 Item</th>
+                                <th class="py-3 px-6 text-right">金额 Amount</th>
+                                <th class="py-3 px-6 text-right">占比 %</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50 font-medium text-slate-600">
+                            <tr>
+                                <td class="py-3 px-6 text-blue-900 font-bold">消课总营收 Revenue (+)</td>
+                                <td class="py-3 px-6 text-right font-bold text-blue-900" x-text="Math.round(avgMonthlyRevenue).toLocaleString()"></td>
+                                <td class="py-3 px-6 text-right text-blue-900 font-bold">100%</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-6 pl-10">房租物业 Rent (-)</td>
+                                <td class="py-2 px-6 text-right" x-text="parseInt(global.rent).toLocaleString()"></td>
+                                <td class="py-2 px-6 text-right opacity-60" x-text="((global.rent/avgMonthlyRevenue)*100).toFixed(1) + '%'"></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-6 pl-10">人力薪资 Staff Cost (-)</td>
+                                <td class="py-2 px-6 text-right" x-text="Math.round(avgStaffCost).toLocaleString()"></td>
+                                <td class="py-2 px-6 text-right opacity-60" x-text="((avgStaffCost/avgMonthlyRevenue)*100).toFixed(1) + '%'"></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-6 pl-10 text-rose-500">营销获客 Marketing (-)</td>
+                                <td class="py-2 px-6 text-right text-rose-500" x-text="parseInt(invest.marketingCost).toLocaleString()"></td>
+                                <td class="py-2 px-6 text-right opacity-60" x-text="((invest.marketingCost/avgMonthlyRevenue)*100).toFixed(1) + '%'"></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-6 pl-10 text-purple-600">总部权益 HQ Cut (-)</td>
+                                <td class="py-2 px-6 text-right text-purple-600" x-text="Math.round(avgHqCost).toLocaleString()"></td>
+                                <td class="py-2 px-6 text-right opacity-60" x-text="((avgHqCost/avgMonthlyRevenue)*100).toFixed(1) + '%'"></td>
+                            </tr>
+                            <tr class="bg-slate-50">
+                                <td class="py-4 px-6 font-bold text-slate-800">净利润 Net Profit</td>
+                                <td class="py-4 px-6 text-right font-black text-sm" :class="avgMonthlyProfit>=0?'text-green-600':'text-red-600'" x-text="'¥' + Math.round(avgMonthlyProfit).toLocaleString()"></td>
+                                <td class="py-4 px-6 text-right font-bold" :class="avgMonthlyProfit>=0?'text-green-600':'text-red-600'" x-text="((avgMonthlyProfit/avgMonthlyRevenue)*100).toFixed(1) + '%'"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Register Plugin
+    Chart.register(ChartDataLabels);
+
+    function csoSystem() {
+        return {
+            // Models
+            global: { avgPrice: 80, weeklyFreq: 3.0, rent: 15000, seasonality: false },
+            invest: { franchiseFee: 50000, deposit: 20000, setupCost: 120000, monthlyFee: 2000, royaltyRateNum: 5, marketingCost: 3000 },
+            coach: { totalStudents: 120, count: 2, baseTotal: 3000, level: 'K2' },
+            coachRates: { 'K2': 0.10, 'K3': 0.12, 'K4': 0.15 },
+            manager: { base: 4000, rate: 0.03 },
+            cash: { monthlySales: 60000 },
+
+            // Computed Helpers
+            get studentsPerCoach() { return Math.round(this.coach.totalStudents / this.coach.count); },
+            get totalInitialInvest() { return parseInt(this.invest.franchiseFee) + parseInt(this.invest.deposit) + parseInt(this.invest.setupCost); },
+            
+            // Status Logic
+            get loadStatus() {
+                const avg = this.studentsPerCoach;
+                if (avg < 20) return { msg: "人效偏低 Low", color: "text-red-500" };
+                if (avg <= 45) return { msg: "健康区间 Good", color: "text-green-600" };
+                return { msg: "负荷过载 Overload", color: "text-orange-500" };
+            },
+
+            // --- Calculation Engine ---
+            calculateMonth(monthIndex) {
+                // 1. Revenue with Seasonality
+                let multiplier = 1.0;
+                if (this.global.seasonality) {
+                    const m = (monthIndex % 12); 
+                    if (m === 1 || m === 2 || m === 7 || m === 8) multiplier = 1.5; // Peak season
+                }
+                const revenue = this.coach.totalStudents * this.global.weeklyFreq * 4 * this.global.avgPrice * multiplier;
+
+                // 2. Staff Cost Logic (V14 Logic Embedded)
+                const revenuePerCoach = revenue / this.coach.count;
+                let cComm = 0;
+                // 10k threshold
+                if (revenuePerCoach > 10000) {
+                    cComm = (revenuePerCoach - 10000) * this.coachRates[this.coach.level];
+                }
+                const cSales = revenuePerCoach * 0.05; // Est. Sales comm for coach
+                // Coach Total
+                const totalCoachPay = (parseInt(this.coach.baseTotal) + cComm + cSales) * this.coach.count;
+                
+                // Manager Total (Based on Cash Sales approx for P&L model or tied to revenue trend)
+                // For P&L projection, we assume Cash Sales tracks Revenue closely over time
+                const projectedSales = revenue; 
+                const totalManagerPay = parseInt(this.manager.base) + (projectedSales * this.manager.rate);
+                
+                const staff = totalCoachPay + totalManagerPay;
+
+                // 3. Other Costs
+                const rent = parseInt(this.global.rent);
+                const marketing = parseInt(this.invest.marketingCost);
+                const royalty = revenue * (this.invest.royaltyRateNum / 100);
+                const hq = parseInt(this.invest.monthlyFee) + royalty;
+
+                const profit = revenue - rent - staff - marketing - hq;
+
+                return { revenue, profit, staff, hq, rent, marketing };
+            },
+
+            // Single Coach Display (For Left Panel)
+            get revenuePerCoach() { return (this.coach.totalStudents * this.global.weeklyFreq * 4 * this.global.avgPrice) / this.coach.count; },
+            get coachClassComm() {
+                if (this.revenuePerCoach <= 10000) return 0;
+                return (this.revenuePerCoach - 10000) * this.coachRates[this.coach.level];
+            },
+            get payPerCoach() { return parseInt(this.coach.baseTotal) + this.coachClassComm + (this.revenuePerCoach * 0.05); },
+            get totalCoachPay() { return this.payPerCoach * this.coach.count; },
+
+            // Averages for Dashboard
+            get avgMonthlyRevenue() { return this.calculateMonth(5).revenue; },
+            get avgMonthlyProfit() { return this.calculateMonth(5).profit; },
+            get avgStaffCost() { return this.calculateMonth(5).staff; },
+            get avgHqCost() { return this.calculateMonth(5).hq; },
+            
+            get paybackPeriod() {
+                let cumulative = -this.totalInitialInvest;
+                for(let i=1; i<=60; i++) {
+                    cumulative += this.calculateMonth(i).profit;
+                    if (cumulative >= 0) return i.toFixed(1);
+                }
+                return ">60";
+            },
+
+            // Charts
+            mainChart: null,
+            doughnutChart: null,
+
+            updateAll() { this.renderCharts(); },
+
+            initCharts() {
+                const ctxMain = document.getElementById('mainChart').getContext('2d');
+                const gradient = ctxMain.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+                gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
+
+                this.mainChart = new Chart(ctxMain, {
+                    type: 'bar',
+                    data: {
+                        labels: Array.from({length: 25}, (_, i) => i === 0 ? 'Start' : i + '月'),
+                        datasets: [{
+                            type: 'line', label: '累计回收', data: [], borderColor: '#2563eb', borderWidth: 3, backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: 0, yAxisID: 'y'
+                        }, {
+                            type: 'bar', label: '净利润', data: [], backgroundColor: [], borderRadius: 4, yAxisID: 'y1'
+                        }]
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, 
+                        plugins: { legend: { display: false }, datalabels: { display: false } }, // Hide datalabels on main chart
+                        scales: { x: { grid: { display: false } }, y: { position: 'left', grid: { borderDash: [5,5] } }, y1: { position: 'right', display: false } } 
+                    }
+                });
+
+                const ctxPie = document.getElementById('doughnutChart').getContext('2d');
+                this.doughnutChart = new Chart(ctxPie, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['房租', '人力', '营销', '总部', '净利'],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: ['#cbd5e1', '#60a5fa', '#fca5a5', '#c084fc', '#10b981'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, cutout: '65%', 
+                        plugins: { 
+                            legend: { display: false },
+                            datalabels: {
+                                color: '#fff',
+                                font: { weight: 'bold', size: 10 },
+                                formatter: (value, ctx) => {
+                                    let sum = 0;
+                                    let dataArr = ctx.chart.data.datasets[0].data;
+                                    dataArr.map(data => { sum += data; });
+                                    let percentage = (value*100 / sum).toFixed(0)+"%";
+                                    return percentage; // Display %
+                                },
+                                display: function(context) {
+                                    return context.dataset.data[context.dataIndex] > 0; // Only show if > 0
+                                }
+                            }
+                        } 
+                    }
+                });
+                this.renderCharts();
+            },
+
+            renderCharts() {
+                if(!this.mainChart || !this.doughnutChart) return;
+
+                const initial = -this.totalInitialInvest;
+                let lineData = [initial], barData = [initial], barColors = ['#f43f5e'], cumulative = initial;
+
+                for(let i=1; i<=24; i++) {
+                    const m = this.calculateMonth(i);
+                    cumulative += m.profit;
+                    lineData.push(cumulative);
+                    barData.push(m.profit);
+                    barColors.push(m.profit >= 0 ? '#10b981' : '#f43f5e');
+                }
+                this.mainChart.data.datasets[0].data = lineData;
+                this.mainChart.data.datasets[1].data = barData;
+                this.mainChart.data.datasets[1].backgroundColor = barColors;
+                this.mainChart.update();
+
+                const std = this.calculateMonth(5);
+                const profit = Math.max(0, std.profit);
+                this.doughnutChart.data.datasets[0].data = [
+                    parseInt(this.global.rent),
+                    Math.round(std.staff),
+                    parseInt(this.invest.marketingCost),
+                    Math.round(std.hq),
+                    Math.round(profit)
+                ];
+                this.doughnutChart.update();
+            }
+        };
+    }
+</script>
+</body>
+</html>
